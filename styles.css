@@ -4,6 +4,17 @@ html, body {
     margin: 0;
     font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
     scroll-behavior: smooth;
+}
+
+body {
+    background: linear-gradient(135deg, #BBD691 0%, #FEF1E1 100%);
+    color: #333;
+    line-height: 1.6;
+    min-height: 100vh;
+}
+
+/* Game-specific body class */
+body.game-page {
     position: fixed;
     width: 100%;
     height: 100%;
@@ -12,20 +23,11 @@ html, body {
     -webkit-overflow-scrolling: none;
 }
 
-body {
-    background: linear-gradient(135deg, #BBD691 0%, #FEF1E1 100%);
-    cursor: pointer;
-    color: #333;
-    line-height: 1.6;
-    overflow-x: hidden;
-}
-
 /* Landing Page Styles */
 .landing-container {
     max-width: 1200px;
     margin: 0 auto;
     padding: 0 1rem;
-    overflow: hidden;
 }
 
 /* Header Styles */
@@ -562,12 +564,16 @@ body {
     .main-nav {
         display: none;
         width: 100%;
-        position: absolute;
-        top: 100%;
+        position: fixed;
+        top: 70px; /* Adjust based on header height */
         left: 0;
-        background-color: rgba(255, 255, 255, 0.95);
+        right: 0;
+        background-color: rgba(255, 255, 255, 0.98);
         padding: 1rem;
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        z-index: 1000;
+        max-height: calc(100vh - 70px);
+        overflow-y: auto;
     }
 
     .main-nav.active {
@@ -577,8 +583,17 @@ body {
         gap: 1rem;
     }
 
+    .nav-link {
+        width: 100%;
+        text-align: center;
+        padding: 1rem;
+    }
+
     .game-header {
-        position: relative;
+        position: sticky;
+        top: 0;
+        z-index: 1001;
+        background-color: rgba(255, 255, 255, 0.98);
     }
 
     .landing-container {
@@ -682,6 +697,9 @@ body {
 /* Prevent body scroll when mobile menu is open */
 body.menu-open {
     overflow: hidden;
+    position: fixed;
+    width: 100%;
+    height: 100%;
 }
 
 /* Animations */
