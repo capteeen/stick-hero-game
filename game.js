@@ -205,26 +205,60 @@ window.addEventListener("keydown", function (event) {
     }
 });
 
-window.addEventListener("mousedown", function (event) {
+// Mouse and touch events
+function handleStart(event) {
+    event.preventDefault();
     if (phase == "waiting") {
         lastTimestamp = undefined;
         introductionElement.style.opacity = 0;
         phase = "stretching";
         window.requestAnimationFrame(animate);
     }
-});
+}
 
-window.addEventListener("mouseup", function (event) {
+function handleEnd(event) {
+    event.preventDefault();
     if (phase == "stretching") {
         phase = "turning";
     }
-});
+}
+
+// Add mouse events
+window.addEventListener("mousedown", handleStart);
+window.addEventListener("mouseup", handleEnd);
+
+// Add touch events
+window.addEventListener("touchstart", handleStart);
+window.addEventListener("touchend", handleEnd);
 
 window.addEventListener("resize", function (event) {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+    // Make canvas responsive
+    const aspectRatio = canvasHeight / canvasWidth;
+    if (window.innerWidth < 768) {
+        canvas.width = window.innerWidth * 0.95;
+        canvas.height = canvas.width * aspectRatio;
+    } else {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    }
     draw();
 });
+
+// Initial canvas size setup
+function initializeCanvasSize() {
+    const aspectRatio = canvasHeight / canvasWidth;
+    if (window.innerWidth < 768) {
+        canvas.width = window.innerWidth * 0.95;
+        canvas.height = canvas.width * aspectRatio;
+    } else {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    }
+    draw();
+}
+
+// Call this when the game loads
+initializeCanvasSize();
 
 restartButton.addEventListener("click", function (event) {
     event.preventDefault();
