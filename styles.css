@@ -600,7 +600,28 @@ body.game-page {
         padding: 0 0.5rem;
     }
 
-    .hero-section,
+    .hero-section {
+        flex-direction: column-reverse;
+        text-align: center;
+        gap: 2rem;
+    }
+
+    .hero-content {
+        padding-right: 0;
+    }
+
+    .hero-image {
+        width: 100%;
+        max-width: 400px;
+        margin: 0 auto;
+    }
+
+    .hero-image img {
+        width: 100%;
+        height: auto;
+        object-fit: cover;
+    }
+
     .about-section,
     .how-to-play-section,
     .features-section,
