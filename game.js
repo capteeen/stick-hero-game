@@ -54,9 +54,6 @@ const heroWidth = 17;
 const heroHeight = 30;
 
 const canvas = document.getElementById("game");
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
-
 const ctx = canvas.getContext("2d");
 
 const introductionElement = document.getElementById("introduction");
@@ -196,14 +193,39 @@ function generatePlatform() {
     platforms.push(platform);
 }
 
-// Event Listeners
-window.addEventListener("keydown", function (event) {
-    if (event.key == " ") {
-        event.preventDefault();
-        resetGame();
-        return;
+// Initialize canvas
+function setCanvasSize() {
+    const aspectRatio = canvasHeight / canvasWidth;
+    let newWidth, newHeight;
+
+    if (window.innerWidth <= 768) {
+        // On mobile, make canvas fill most of the screen width
+        newWidth = window.innerWidth * 0.95;
+        newHeight = newWidth * aspectRatio;
+    } else {
+        // On desktop, use original dimensions
+        newWidth = canvasWidth;
+        newHeight = canvasHeight;
     }
-});
+
+    canvas.style.width = `${newWidth}px`;
+    canvas.style.height = `${newHeight}px`;
+    
+    // Set actual canvas dimensions (for better pixel density)
+    const scale = window.devicePixelRatio || 1;
+    canvas.width = newWidth * scale;
+    canvas.height = newHeight * scale;
+    
+    // Scale the context to match device pixel ratio
+    ctx.scale(scale, scale);
+    
+    // Scale the drawing context to maintain game proportions
+    ctx.scale(newWidth / canvasWidth, newHeight / canvasHeight);
+}
+
+// Call setCanvasSize initially and on resize
+setCanvasSize();
+window.addEventListener("resize", setCanvasSize);
 
 // Mouse and touch events
 function handleStart(event) {
@@ -224,179 +246,37 @@ function handleEnd(event) {
 }
 
 // Add mouse events
-window.addEventListener("mousedown", handleStart);
-window.addEventListener("mouseup", handleEnd);
+canvas.addEventListener("mousedown", handleStart);
+canvas.addEventListener("mouseup", handleEnd);
 
-// Add touch events
-window.addEventListener("touchstart", handleStart);
-window.addEventListener("touchend", handleEnd);
+// Add touch events with proper handling
+canvas.addEventListener("touchstart", (e) => {
+    e.preventDefault(); // Prevent default touch behavior
+    handleStart(e.touches[0]);
+}, { passive: false });
 
-window.addEventListener("resize", function (event) {
-    // Make canvas responsive
-    const aspectRatio = canvasHeight / canvasWidth;
-    if (window.innerWidth < 768) {
-        canvas.width = window.innerWidth * 0.95;
-        canvas.height = canvas.width * aspectRatio;
-    } else {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-    }
-    draw();
-});
+canvas.addEventListener("touchend", (e) => {
+    e.preventDefault(); // Prevent default touch behavior
+    handleEnd(e.changedTouches[0]);
+}, { passive: false });
 
-// Initial canvas size setup
-function initializeCanvasSize() {
-    const aspectRatio = canvasHeight / canvasWidth;
-    if (window.innerWidth < 768) {
-        canvas.width = window.innerWidth * 0.95;
-        canvas.height = canvas.width * aspectRatio;
-    } else {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-    }
-    draw();
-}
+// Prevent default touch behavior on the game container
+document.querySelector('.container').addEventListener('touchmove', (e) => {
+    e.preventDefault();
+}, { passive: false });
 
-// Call this when the game loads
-initializeCanvasSize();
-
-restartButton.addEventListener("click", function (event) {
-    event.preventDefault();
-    resetGame();
-    restartButton.style.display = "none";
-});
-
-// The main game loop
-function animate(timestamp) {
-    if (!lastTimestamp) {
-        lastTimestamp = timestamp;
-        window.requestAnimationFrame(animate);
-        return;
-    }
-
-    switch (phase) {
-        case "waiting":
-            return;
-        case "stretching": {
-            sticks.last().length += (timestamp - lastTimestamp) / stretchingSpeed;
-            if (sticks.last().length % 10 === 0) {
-                playSound('stretch');
-            }
-            break;
-        }
-        case "turning": {
-            sticks.last().rotation += (timestamp - lastTimestamp) / turningSpeed;
-
-            if (sticks.last().rotation > 90) {
-                sticks.last().rotation = 90;
-
-                const [nextPlatform, perfectHit] = thePlatformTheStickHits();
-                if (nextPlatform) {
-                    score += perfectHit ? 2 : 1;
-                    scoreElement.innerText = score;
-                    updateHighScore();
-
-                    if (perfectHit) {
-                        perfectElement.style.opacity = 1;
-                        playSound('perfect');
-                        setTimeout(() => (perfectElement.style.opacity = 0), 1000);
-                    }
-
-                    generatePlatform();
-                    generateTree();
-                    generateTree();
-                }
-
-                phase = "walking";
-            }
-            break;
-        }
-        case "walking": {
-            heroX += (timestamp - lastTimestamp) / walkingSpeed;
-
-            const [nextPlatform] = thePlatformTheStickHits();
-            if (nextPlatform) {
-                const maxHeroX = nextPlatform.x + nextPlatform.w - heroDistanceFromEdge;
-                if (heroX > maxHeroX) {
-                    heroX = maxHeroX;
-                    phase = "transitioning";
-                }
-            } else {
-                const maxHeroX = sticks.last().x + sticks.last().length + heroWidth;
-                if (heroX > maxHeroX) {
-                    heroX = maxHeroX;
-                    phase = "falling";
-                }
-            }
-            break;
-        }
-        case "transitioning": {
-            sceneOffset += (timestamp - lastTimestamp) / transitioningSpeed;
-
-            const [nextPlatform] = thePlatformTheStickHits();
-            if (sceneOffset > nextPlatform.x + nextPlatform.w - paddingX) {
-                sticks.push({
-                    x: nextPlatform.x + nextPlatform.w,
-                    length: 0,
-                    rotation: 0
-                });
-                phase = "waiting";
-            }
-            break;
-        }
-        case "falling": {
-            if (sticks.last().rotation < 180)
-                sticks.last().rotation += (timestamp - lastTimestamp) / turningSpeed;
-
-            heroY += (timestamp - lastTimestamp) / fallingSpeed;
-            const maxHeroY = platformHeight + 100 + (window.innerHeight - canvasHeight) / 2;
-            if (heroY > maxHeroY) {
-                updateHighScore();
-                playSound('gameOver');
-                restartButton.style.display = "block";
-                return;
-            }
-            break;
-        }
-    }
-
-    draw();
-    window.requestAnimationFrame(animate);
-    lastTimestamp = timestamp;
-}
-
-function thePlatformTheStickHits() {
-    if (sticks.last().rotation != 90)
-        throw Error(`Stick is ${sticks.last().rotation}°`);
-    const stickFarX = sticks.last().x + sticks.last().length;
-
-    const platformTheStickHits = platforms.find(
-        (platform) => platform.x < stickFarX && stickFarX < platform.x + platform.w
-    );
-
-    if (
-        platformTheStickHits &&
-        platformTheStickHits.x + platformTheStickHits.w / 2 - perfectAreaSize / 2 <
-            stickFarX &&
-        stickFarX <
-            platformTheStickHits.x + platformTheStickHits.w / 2 + perfectAreaSize / 2
-    )
-        return [platformTheStickHits, true];
-
-    return [platformTheStickHits, false];
-}
-
+// Update draw function to handle mobile scaling
 function draw() {
     ctx.save();
-    ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    drawBackground();
-
+    // Center the game view
     ctx.translate(
-        (window.innerWidth - canvasWidth) / 2 - sceneOffset,
-        (window.innerHeight - canvasHeight) / 2
+        -sceneOffset + paddingX,
+        0
     );
 
+    drawBackground();
     drawPlatforms();
     drawHero();
     drawSticks();
@@ -673,4 +553,124 @@ function drawCharacter() {
     ctx.fillStyle = '#FF0000'; // Red color for the fez
     ctx.arc(headX + headSize/2, headY + headSize/4, headSize/3, 0, Math.PI * 2);
     ctx.fill();
+}
+
+// The main game loop
+function animate(timestamp) {
+    if (!lastTimestamp) {
+        lastTimestamp = timestamp;
+        window.requestAnimationFrame(animate);
+        return;
+    }
+
+    switch (phase) {
+        case "waiting":
+            return;
+        case "stretching": {
+            sticks.last().length += (timestamp - lastTimestamp) / stretchingSpeed;
+            if (sticks.last().length % 10 === 0) {
+                playSound('stretch');
+            }
+            break;
+        }
+        case "turning": {
+            sticks.last().rotation += (timestamp - lastTimestamp) / turningSpeed;
+
+            if (sticks.last().rotation > 90) {
+                sticks.last().rotation = 90;
+
+                const [nextPlatform, perfectHit] = thePlatformTheStickHits();
+                if (nextPlatform) {
+                    score += perfectHit ? 2 : 1;
+                    scoreElement.innerText = score;
+                    updateHighScore();
+
+                    if (perfectHit) {
+                        perfectElement.style.opacity = 1;
+                        playSound('perfect');
+                        setTimeout(() => (perfectElement.style.opacity = 0), 1000);
+                    }
+
+                    generatePlatform();
+                    generateTree();
+                    generateTree();
+                }
+
+                phase = "walking";
+            }
+            break;
+        }
+        case "walking": {
+            heroX += (timestamp - lastTimestamp) / walkingSpeed;
+
+            const [nextPlatform] = thePlatformTheStickHits();
+            if (nextPlatform) {
+                const maxHeroX = nextPlatform.x + nextPlatform.w - heroDistanceFromEdge;
+                if (heroX > maxHeroX) {
+                    heroX = maxHeroX;
+                    phase = "transitioning";
+                }
+            } else {
+                const maxHeroX = sticks.last().x + sticks.last().length + heroWidth;
+                if (heroX > maxHeroX) {
+                    heroX = maxHeroX;
+                    phase = "falling";
+                }
+            }
+            break;
+        }
+        case "transitioning": {
+            sceneOffset += (timestamp - lastTimestamp) / transitioningSpeed;
+
+            const [nextPlatform] = thePlatformTheStickHits();
+            if (sceneOffset > nextPlatform.x + nextPlatform.w - paddingX) {
+                sticks.push({
+                    x: nextPlatform.x + nextPlatform.w,
+                    length: 0,
+                    rotation: 0
+                });
+                phase = "waiting";
+            }
+            break;
+        }
+        case "falling": {
+            if (sticks.last().rotation < 180)
+                sticks.last().rotation += (timestamp - lastTimestamp) / turningSpeed;
+
+            heroY += (timestamp - lastTimestamp) / fallingSpeed;
+            const maxHeroY = platformHeight + 100 + (window.innerHeight - canvasHeight) / 2;
+            if (heroY > maxHeroY) {
+                updateHighScore();
+                playSound('gameOver');
+                restartButton.style.display = "block";
+                return;
+            }
+            break;
+        }
+    }
+
+    draw();
+    window.requestAnimationFrame(animate);
+    lastTimestamp = timestamp;
+}
+
+function thePlatformTheStickHits() {
+    if (sticks.last().rotation != 90)
+        throw Error(`Stick is ${sticks.last().rotation}°`);
+    const stickFarX = sticks.last().x + sticks.last().length;
+
+    const platformTheStickHits = platforms.find(
+        (platform) => platform.x < stickFarX && stickFarX < platform.x + platform.w
+    );
+
+    if (
+        platformTheStickHits &&
+        platformTheStickHits.x + platformTheStickHits.w / 2 - perfectAreaSize / 2 <
+            stickFarX &&
+        stickFarX <
+            platformTheStickHits.x + platformTheStickHits.w / 2 + perfectAreaSize / 2
+    )
+        return [platformTheStickHits, true];
+
+    return [platformTheStickHits, false];
 } 
