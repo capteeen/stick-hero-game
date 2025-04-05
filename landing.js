@@ -1,4 +1,41 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // Mobile menu functionality
+    const mobileMenuToggle = document.querySelector('.mobile-menu-toggle');
+    const mainNav = document.querySelector('.main-nav');
+    const body = document.body;
+
+    mobileMenuToggle.addEventListener('click', () => {
+        mainNav.classList.toggle('active');
+        body.classList.toggle('menu-open');
+    });
+
+    // Close mobile menu when clicking a nav link
+    const mobileNavLinks = document.querySelectorAll('.nav-link');
+    mobileNavLinks.forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            const targetId = link.getAttribute('href');
+            const targetSection = document.querySelector(targetId);
+            
+            // Close mobile menu
+            mainNav.classList.remove('active');
+            body.classList.remove('menu-open');
+            
+            // Smooth scroll to section
+            targetSection.scrollIntoView({ behavior: 'smooth' });
+        });
+    });
+
+    // Close mobile menu when clicking outside
+    document.addEventListener('click', (e) => {
+        if (mainNav.classList.contains('active') && 
+            !mainNav.contains(e.target) && 
+            !mobileMenuToggle.contains(e.target)) {
+            mainNav.classList.remove('active');
+            body.classList.remove('menu-open');
+        }
+    });
+
     // Play button functionality
     const startButton = document.getElementById('start-game');
     startButton.addEventListener('click', () => {
@@ -47,7 +84,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Function to copy contract address
-    function copyAddress() {
+    window.copyAddress = function() {
         const address = '0x7D1AfA7B718fb893dB30A3aBc0Cfc608AaCfeBB0';
         navigator.clipboard.writeText(address).then(() => {
             const copyButton = document.querySelector('.copy-button');
@@ -65,5 +102,5 @@ document.addEventListener('DOMContentLoaded', () => {
         }).catch(err => {
             console.error('Failed to copy:', err);
         });
-    }
+    };
 }); 
